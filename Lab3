@@ -1,0 +1,99 @@
+/*
+===============================================================================
+ Name        : Lab3.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#ifdef __USE_CMSIS
+#include "LPC17xx.h"
+#endif
+
+#include <cr_section_macros.h>
+
+
+#define CLKSRCSEL (*(volatile unsigned int *)0x400fc10c)
+#define PLL0CON (*(volatile unsigned int *)0x400fc080)
+#define PLL0CFG (*(volatile unsigned int *)0x400fc084)
+#define PLL0STAT (*(volatile unsigned int *)0x400fc088)
+#define PLL0FEED (*(volatile unsigned int *)0x400fc08c)
+#define CCLKCFG (*(volatile unsigned int *)0x400fc104)
+#define PINSEL3 (*(volatile unsigned int *)0x4002c00c)
+#define CLKOUTCFG (*(volatile unsigned int *)0x400fc1c8)
+
+
+
+int main(void) {
+
+	PINSEL3 |= (1<<22);  // (P1.27) set to output
+
+	// 1) Disconnect PLL0 with one feed sequence if PLL0 is already connected
+	PLL0CON &= ~(1u<<1);
+
+
+	PLL0FEED = 0xAA;
+	PLL0FEED = 0x55;
+
+
+
+	// 2) Disable PLL0 with one feed sequence
+	PLL0CON &= ~(1u<<0);
+
+	PLL0FEED = 0xAA;
+	PLL0FEED = 0x55;
+
+
+
+	// 3) Change the CPU Clock Divider setting to speed up operation without PLL0, if desired
+	//CCLKCFG = 31;
+
+
+	// 4) Select R-C Oscillator as clock source
+	CLKSRCSEL = 0;
+
+
+	// 5) Write to the PLL0CFG and make it effective with one feed sequence
+	PLL0CFG = (0 << 16) | (35);
+
+	PLL0FEED = 0xAA;
+	PLL0FEED = 0x55;
+
+
+
+	// 6) Enable PLL0 with one feed sequence
+	PLL0CON |= (1<<0);
+
+	PLL0FEED = 0xAA;
+	PLL0FEED = 0x55;
+
+
+
+	// 8) Enable PLL0 with one feed sequence
+	//CCLKCFG = 0;
+
+
+    while(PLL0STAT >> 26 & 1 == 0) {
+    	//Do nothing
+    }
+
+
+
+    // 7) Change the CPU Clock Divider setting for the operation with PLL0. It is critical to do this before connecting PLL0.
+	CCLKCFG = 31;
+
+
+
+	//9 Connect PLL0 with one feed sequence
+	PLL0CON |= (1<<1);
+
+	PLL0FEED = 0xAA;
+	PLL0FEED = 0x55;
+
+
+	CLKOUTCFG |= (1<<8);
+
+    return 0 ;
+}
