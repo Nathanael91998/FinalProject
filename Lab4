@@ -1,0 +1,321 @@
+/*
+===============================================================================
+ Name        : Lab4.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#ifdef __USE_CMSIS
+#include "LPC17xx.h"
+#endif
+
+#include <cr_section_macros.h>
+#define PINSEL1 (*(volatile unsigned int *)0x4002c004)
+#define PCLKSEL0 (*(volatile unsigned int *)0x400FC1A8)
+#define I2C0SCLH (*(volatile unsigned int *)0x4001C010)
+#define I2C0SCLL (*(volatile unsigned int *)0x4001C014)
+#define I2C0CONSET (*(volatile unsigned int *)0x4001C000)
+#define I2C0CONCLR (*(volatile unsigned int *)0x4001C018)
+#define I2C0DAT (*(volatile unsigned int *) 0x4001C008)
+#define I2C0STAT (*(volatile unsigned int *) 0x4001C004)
+
+
+
+void start()
+{
+	//Set the SI bit in the i2c control register
+	I2C0CONSET = (1<<3);
+
+	//Set the STA bit in the i2c control register
+	I2C0CONSET = (1<<5);
+
+	//Clear the SI bit
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+
+	}
+	//Clear the STA bit
+	I2C0CONCLR = (1<<5);
+}
+
+int read(int a)
+{
+	int data;
+
+	if(a == 1)
+	{
+		//Clear the AA bit in the i2c control register
+		I2C0CONCLR = (1<<2);
+	}
+
+	else
+	{
+		//To read,set the AA bit in i2c control register
+		I2C0CONSET = (1<<2);
+	}
+
+
+	//Clear the SI bit in the i2c control register
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+
+	}
+	//Assign the data from the I2CxDAT register
+	data = I2C0DAT;
+	return data;
+}
+
+void write(int data)
+{
+	//Assign the data to the I2CxDAT register
+	I2C0DAT = data;
+
+	//Clear the SI bit
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+	}
+}
+
+void stop()
+{
+	//Set the STO bit in the I2C control register
+	I2C0CONSET = (1<<4);
+
+	//Clear the SI bit in the I2C control register
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the STO bit to return to 0
+	while(((I2C0CONSET >> 4) & 1) == 1)
+	{
+	}
+}
+
+
+int convertDataTens(int temperature){
+
+	int binary = 0b0;
+	switch(temperature) {
+	  case 0 :
+		 binary = 0b1110111;
+	  break;
+	  case 1 :
+		 binary = 0b0010100;
+	  break;
+	  case 2 :
+		 binary = 0b1101110;
+	  break;
+	  case 3 :
+		 binary = 0b0111110;
+	  break;
+	  case 4 :
+		 binary = 0b0011101;
+	  break;
+	  case 5 :
+		 binary = 0b0111011;
+	  break;
+	  case 6 :
+		 binary = 0b1111011;
+	  break;
+	  case 7 :
+		 binary = 0b0010110;
+	  break;
+	  case 8 :
+		 binary = 0b1111111;
+	  break;
+	  case 9 :
+		 binary = 0b0111111;
+	  break;
+	  default :
+		 binary = 0b0000000;
+   }
+
+	return binary;
+}
+
+int convertDataOnes(int temperature){
+
+	int binary = 0b0;
+	switch(temperature) {
+	  case 0 :
+		 binary = 0b1110111;
+	  break;
+	  case 1 :
+		 binary = 0b0100100;
+	  break;
+	  case 2 :
+		 binary = 0b1101011;
+	  break;
+	  case 3 :
+		 binary = 0b1101110;
+	  break;
+	  case 4 :
+		 binary = 0b0111100;
+	  break;
+	  case 5 :
+		 binary = 0b1011110;
+	  break;
+	  case 6 :
+		 binary = 0b1011111;
+	  break;
+	  case 7 :
+		 binary = 0b1100100;
+	  break;
+	  case 8 :
+		 binary = 0b1111111;
+	  break;
+	  case 9 :
+		 binary = 0b1111110;
+	  break;
+	  default :
+		 binary = 0b0000000;
+   }
+
+	return binary;
+}
+
+
+int main(void) {
+	int data;
+	int data2;
+	float data3;
+	float a;
+	int tensCelsius;
+	int onesCelsius;
+	int F;
+	int tensF;
+	int onesF;
+	int binaryOnes;
+	int binaryTens;
+	int buttonPressed;
+
+	I2C0STAT;
+
+	PINSEL1 |= (1<<22);  // (P1.27) set to output
+	PINSEL1 |= (1<<24);  // (P1.28) set to output
+
+	//Set the high and low values equal to each other for 50% duty cycle
+	I2C0SCLH = 5;
+	I2C0SCLL = 5;
+
+	//i2c interrupt clear bit is bit 3 of I2CCONCLR
+	//I2EN (bit 6 of I2C0CONSET is cleared and then set to 1 to enable i2c function.
+	I2C0CONCLR = (1<<6);
+	I2C0CONSET = (1<<6);
+
+
+
+
+
+
+	start();
+	//Write to IODIRA register
+	write(0b01000000);
+	//Access address for IODIRA
+	write(0x00);
+	//Set all pins to output for IODIRA
+	write(0b0000000);
+	stop();
+
+	start();
+	//Write to IODIRB
+	write(0b01000000);
+	//Access address for IODIRB
+	write(0x01);
+	//Set specific pins to output for IODIRB
+	write(1<<7);
+	stop();
+
+
+
+	while(1)
+	{
+
+		start();
+		//Access address for temperature sensor
+		write(0b10011110);
+		//Read from sensor
+		write(0b0000);
+		start();
+		//Access address for temperature sensor
+		write(0b10011111);
+		//Store the data in a variable
+		data = read(0);
+		data2 = read(1);
+		stop();
+
+		start();
+		//Access address for button
+		write(0b01000000);
+		//Read from GPIO address for button
+		write(0x13);
+		start();
+		//Access address for button
+		write(0b01000001);
+		//Store the data in a variable
+		buttonPressed = read(1);
+		stop();
+
+
+		//Convert data into bits for the GPIO expander
+		//Read again and concatenate and multiply by .125 before doing this again
+		data3 = data + ((data2 >> 5)/8.);
+
+
+
+		tensCelsius = data / 10;
+		onesCelsius = data % 10;
+
+		F = ((data3 * 9)/5) + 32;
+		tensF = F / 10;
+		onesF = F % 10;
+
+		if(((buttonPressed >> 7) & 1) == 1)
+		{
+			binaryTens = convertDataTens(tensF);
+			binaryOnes = convertDataOnes(onesF);
+
+		}
+		else
+		{
+			binaryTens = convertDataTens(tensCelsius);
+			binaryOnes = convertDataOnes(onesCelsius);
+		}
+
+
+
+
+		start();
+		//Write to GPIO expander
+		write(0b01000000);
+		//Access address for GPIOA
+		write(0x12);
+		//Set correct pins to output for GPIOA
+		write(binaryOnes);
+		stop();
+
+		start();
+		//Write to GPIO expander
+		write(0b01000000);
+		//Access address for GPIOB
+		write(0x13);
+		//Set correct pins to output for GPIOB
+		write(binaryTens);
+		stop();
+
+
+	}
+
+    return 0 ;
+}
