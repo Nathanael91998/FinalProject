@@ -1,0 +1,403 @@
+/*
+===============================================================================
+ Name        : Lab2.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#ifdef __USE_CMSIS
+#include "LPC17xx.h"
+#endif
+
+#include <cr_section_macros.h>
+
+
+#define FIO0DIR (*(volatile unsigned int *)0x2009c000)
+#define FIO0PIN (*(volatile unsigned int *)0x2009c014)
+#define FIO1DIR (*(volatile unsigned int *)0x2009c020)
+#define FIO1PIN (*(volatile unsigned int *)0x2009c034)
+#define FIO2DIR (*(volatile unsigned int *)0x2009c040)
+#define FIO2PIN (*(volatile unsigned int *)0x2009c054)
+#define PINMODE0 (*(volatile unsigned int *)0x4002c040)
+#define PINMODE1 (*(volatile unsigned int *)0x4002c044)
+
+
+volatile int busywork = 0;
+int gameTrackerBlue = 4;
+int gameTrackerRed = 4;
+int gameTrackerGreen = 4;
+int aCanPressBlue = 1;
+int aCanPressRed = 1;
+int aCanPressGreen = 1;
+int bCanPressBlue = 1;
+int bCanPressRed = 1;
+int bCanPressGreen = 1;
+
+
+
+void wait_ticks(int ticks)
+{
+	volatile int count;
+	for (count=0; count<ticks; count++){
+		//do nothing
+	}
+}
+
+int main(void) {
+
+	//Switches for Team A
+	FIO0DIR &= ~(1u<<18);           //(P0.18) input
+	PINMODE1 |= (1u<<5) | (1<<4);   //Pulldown
+
+	FIO0DIR &= ~(1u<<17);           //(P0.17) input
+	PINMODE1 |= (1u<<3) | (1<<2);   //Pulldown
+
+	FIO0DIR &= ~(1u<<15);           //(P0.15) input
+	PINMODE0 |= (1u<<31) | (1<<30); //Pulldown
+
+
+	//Switches for Team B
+	FIO0DIR &= ~(1u<<16);           //(P0.16) input
+	PINMODE1 |= (1u<<1) | (1<<0);   //Pulldown
+
+	FIO0DIR &= ~(1u<<23);           //(P0.23) input
+	PINMODE1 |= (1u<<15) | (1<<14); //Pulldown
+
+	FIO0DIR &= ~(1u<<24);           //(P0.24) input
+	PINMODE1 |= (1u<<17) | (1<<16); //Pulldown
+
+
+
+
+
+	//4 Blue LEDs
+	FIO0DIR |= (1<<25);  //BlueLED at (P0.25) set to output
+	FIO0DIR |= (1<<26);  //BlueLED at (P0.26) set to output
+	FIO1DIR |= (1<<30);  //BlueLED at (P1.30) set to output
+	FIO1DIR |= (1<<31);  //BlueLED at (P1.31) set to output
+
+	//4 Green LEDs
+	FIO2DIR |= (1<<8);   //GreenLED at (P2.8) set to output
+	FIO2DIR |= (1<<7);   //GreenLED at (P2.7) set to output
+	FIO2DIR |= (1<<6);  //GreenLED at (P2.6) set to output
+	FIO2DIR |= (1<<5);  //GreenLED at (P2.5) set to output
+
+	//4 Red LEDs
+	FIO2DIR |= (1<<1);   //RedLED at (P2.1) set to output
+	FIO2DIR |= (1<<2);   //RedLED at (P2.2) set to output
+	FIO2DIR |= (1<<3);   //RedLED at (P2.3) set to output
+	FIO2DIR |= (1<<4);   //RedLED at (P2.4) set to output
+
+
+
+
+
+	//Turn on Blue LEDs
+	FIO0PIN |= (1<<25);  //P0.25 set to high, turning on LED
+    ++busywork;
+    FIO0PIN |= (1<<26);  //P0.26 set to high, turning on LED
+    ++busywork;
+    FIO1PIN |= (1<<30);  //P1.30 set to high, turning on LED
+    ++busywork;
+    FIO1PIN |= (1<<31);  //P1.31 set to high, turning on LED
+    ++busywork;
+
+    //Turn on Green LEDs
+    FIO2PIN |= (1<<8);   //P2.8 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<7);   //P2.7 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<6);  //P2.6 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<5);   //P2.5  set to high, turning on LED
+    ++busywork;
+
+    //Turn on Red LEDs
+    FIO2PIN |= (1<<1);   //P2.1 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<2);   //P2.2 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<3);   //P2.3 set to high, turning on LED
+    ++busywork;
+    FIO2PIN |= (1<<4);   //P2.4 set to high, turning on LED
+    ++busywork;
+
+
+
+	while(1){
+
+			 //This loop activates if all the lights are turned off. The number of lights that are on are equal
+			 //to the value of gameTracker[color]. So if the value stored in gameValueRed is 2 then 2 red lights
+			 //are still on.
+			 if(gameTrackerBlue == 0 && gameTrackerRed == 0 && gameTrackerGreen == 0)
+			 {
+				//Reset light tracker values
+				wait_ticks(190000);
+				gameTrackerBlue = 4;
+				gameTrackerRed = 4;
+				gameTrackerGreen = 4;
+
+				//Allow either player to press any button they choose.
+				aCanPressBlue = 1;
+				aCanPressRed = 1;
+				aCanPressGreen = 1;
+				bCanPressBlue = 1;
+				bCanPressRed = 1;
+				bCanPressGreen = 1;
+
+				//Turn on Blue LEDs
+				FIO0PIN |= (1<<25);  //P0.25 set to high, turning on LED
+				++busywork;
+				FIO0PIN |= (1<<26);  //P0.26 set to high, turning on LED
+				++busywork;
+				FIO1PIN |= (1<<30);  //P1.30 set to high, turning on LED
+				++busywork;
+				FIO1PIN |= (1<<31);  //P1.31 set to high, turning on LED
+				++busywork;
+
+				//Turn on Green LEDs
+				FIO2PIN |= (1<<8);   //P2.8 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<7);   //P2.7 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<6);   //P2.6 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<5);   //P2.5  set to high, turning on LED
+				++busywork;
+
+				//Turn on Red LEDs
+				FIO2PIN |= (1<<1);   //P2.1 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<2);   //P2.2 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<3);   //P2.3 set to high, turning on LED
+				++busywork;
+				FIO2PIN |= (1<<4);   //P2.4 set to high, turning on LED
+				++busywork;
+			 }
+
+			 //Team B buttons
+			 //Green LEDs
+
+			 //The next 6 if statements are all structured the same and correlate to the six buttons that
+			 //can be pressed to provide input to the game.
+			 if(((FIO0PIN>>16) & 1) == 1 && (bCanPressGreen == 1)) //if P0.16 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 //Prevent player from pressing other colors while giving opponent freedom to press their own
+				 aCanPressRed = 1;
+				 aCanPressGreen = 1;
+				 aCanPressBlue = 1;
+				 bCanPressBlue = 0;
+				 bCanPressRed = 0;
+
+				 //Check and see how many lights are currently on, and then turn off the correct light
+				 //based off of this information
+				 if(gameTrackerGreen == 4)
+				 {
+					  FIO2PIN &= ~(1<<5);   //P2.5 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);    //This statement prevents all lights from turning off with one short press
+				 }
+				 else if(gameTrackerGreen == 3)
+				 {
+					  FIO2PIN &= ~(1<<6);   //P2.6 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerGreen == 2)
+				 {
+					  FIO2PIN &= ~(1<<7);   //P2.7 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerGreen == 1)
+				 {
+					  FIO2PIN &= ~(1<<8);   //P2.8 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+
+			 //Red LEDs
+			 if(((FIO0PIN>>23) & 1) == 1 && (bCanPressRed == 1)) //if P0.23 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 aCanPressBlue = 1;
+				 aCanPressRed = 1;
+				 aCanPressGreen = 1;
+				 bCanPressBlue = 0;
+				 bCanPressGreen = 0;
+
+				 if(gameTrackerRed == 4)
+				 {
+					  FIO2PIN &= ~(1<<4);   //P2.4 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 3)
+				 {
+					  FIO2PIN &= ~(1<<3);   //P2.3 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 2)
+				 {
+					  FIO2PIN &= ~(1<<2);   //P2.2 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 1)
+				 {
+					  FIO2PIN &= ~(1<<1);   //P2.1 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+
+			 //Blue LEDs
+			 if(((FIO0PIN>>24) & 1) == 1  && (bCanPressBlue == 1)) //if P0.24 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 aCanPressBlue = 1;
+				 aCanPressRed = 1;
+				 aCanPressGreen = 1;
+				 bCanPressRed = 0;
+				 bCanPressGreen = 0;
+
+				 if(gameTrackerBlue == 4)
+				 {
+					  FIO1PIN &= ~(1<<31);   //P1.31 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerBlue == 3)
+				 {
+				      FIO1PIN &= ~(1<<30);   //P1.31 set to low, turning off LED
+	 				  gameTrackerBlue = gameTrackerBlue - 1;
+	 				 wait_ticks(90000);
+				 }
+				 else if(gameTrackerBlue == 2)
+				 {
+					  FIO0PIN &= ~(1<<26);   //P0.26 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerBlue == 1)
+				 {
+					  FIO0PIN &= ~(1<<25);   //P0.25 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+
+
+
+			 //Team A buttons
+			 //Green LEDs
+			 if(((FIO0PIN>>18) & 1) == 1 && (aCanPressGreen == 1)) //if P0.18 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 aCanPressRed = 0;
+				 aCanPressBlue = 0;
+				 bCanPressBlue = 1;
+				 bCanPressRed = 1;
+				 bCanPressGreen = 1;
+
+				 if(gameTrackerGreen == 4)
+				 {
+					  FIO2PIN &= ~(1<<5);   //P2.5 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerGreen == 3)
+				 {
+					  FIO2PIN &= ~(1<<6);   //P2.6 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerGreen == 2)
+				 {
+					  FIO2PIN &= ~(1<<7);    //P2.7 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerGreen == 1)
+				 {
+					  FIO2PIN &= ~(1<<8);   //P2.8 set to low, turning off LED
+					  gameTrackerGreen = gameTrackerGreen - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+
+			 //Red LEDs
+			 if(((FIO0PIN>>17) & 1) == 1 && (aCanPressRed == 1)) //if P0.17 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 aCanPressBlue = 0;
+				 aCanPressGreen = 0;
+				 bCanPressBlue = 1;
+				 bCanPressRed = 1;
+				 bCanPressGreen = 1;
+
+				 if(gameTrackerRed == 4)
+				 {
+					  FIO2PIN &= ~(1<<4);   //P2.4 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 3)
+				 {
+					  FIO2PIN &= ~(1<<3);   //P2.3 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 2)
+				 {
+					  FIO2PIN &= ~(1<<2);   //P2.2 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerRed == 1)
+				 {
+					  FIO2PIN &= ~(1<<1);   //P2.1 set to low, turning off LED
+					  gameTrackerRed = gameTrackerRed - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+
+
+			 if((((FIO0PIN>>15) & 1) == 1) && (aCanPressBlue == 1)) //if P0.15 is pressed and neither of the other buttons have been pressed then enter statement
+			 {
+				 aCanPressRed = 0;
+				 aCanPressGreen = 0;
+				 bCanPressBlue = 1;
+				 bCanPressRed = 1;
+				 bCanPressGreen = 1;
+
+				 if(gameTrackerBlue == 4)
+				 {
+					  FIO1PIN &= ~(1<<31);   //P1.31 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerBlue == 3)
+				 {
+					  FIO1PIN &= ~(1<<30);   //P1.30 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+			     }
+				 else if(gameTrackerBlue == 2)
+				 {
+					  FIO0PIN &= ~(1<<26);   //P1.26 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+				 else if(gameTrackerBlue == 1)
+				 {
+					  FIO0PIN &= ~(1<<25);   //P1.25 set to low, turning off LED
+					  gameTrackerBlue = gameTrackerBlue - 1;
+					  wait_ticks(90000);
+				 }
+			 }
+	}
+	 return 0 ;
+}
