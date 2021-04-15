@@ -1,0 +1,69 @@
+#ifdef __USE_CMSIS
+
+#include "LPC17xx.h"
+
+#endif
+
+
+
+#include <cr_section_macros.h>
+
+
+
+#define FIO0DIR (*(volatile unsigned int *)0x2009c000)
+
+#define FIO0PIN (*(volatile unsigned int *)0x2009c014)
+
+#define MIN (*(volatile unsigned int *)0x40024024)
+
+#define SEC (*(volatile unsigned int *)0x40024020)
+
+#define CLKEN (*(volatile unsigned int *) 0x40024008)
+
+void wait_ticks(int ticks)
+
+{
+
+	volatile int count;
+
+	for (count=0; count<ticks; count++){
+
+		//do nothing
+
+	}
+
+}
+
+int main(void) {
+
+  //Testing MIN and SEC registers to see what the values look like
+
+  CLKEN = 1;
+
+  MIN = 0;
+
+  SEC = 0;
+
+
+  printf("%d", MIN);
+  printf("\n");
+  printf("%d", SEC);
+  printf("\n");
+  
+    	FIO0DIR |= (1<<22);
+
+  	while(1){
+
+  			FIO0PIN |= (1<<22);
+
+  			wait_ticks(100000);
+
+  			FIO0PIN &= ~(1<<22);
+
+  			wait_ticks(100000);
+
+  			printf("%d", SEC);
+
+  		}
+  	return 0;
+}
