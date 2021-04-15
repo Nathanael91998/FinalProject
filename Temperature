@@ -181,7 +181,7 @@ void stop()
 int main(void) {
 
 I2C0STAT;
-
+int data = 0;
 
 
   	PINSEL1 |= (1<<22);  // (P1.27) set to output
