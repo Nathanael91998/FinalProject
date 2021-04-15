@@ -53,16 +53,12 @@ int main(void) {
     	FIO0DIR |= (1<<22);
 
   	while(1){
-
-  			FIO0PIN |= (1<<22);
-
-  			wait_ticks(100000);
-
-  			FIO0PIN &= ~(1<<22);
-
-  			wait_ticks(100000);
-
+			wait_ticks(4000000);
+  			printf("%d", MIN);
+  			printf("\n");
   			printf("%d", SEC);
+  			printf("\n");
+
 
   		}
   	return 0;
