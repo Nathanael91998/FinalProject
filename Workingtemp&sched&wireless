@@ -1,0 +1,264 @@
+#ifdef __USE_CMSIS
+
+#include "LPC17xx.h"
+
+#endif
+
+
+
+#include <cr_section_macros.h>
+
+#define PINSEL1 (*(volatile unsigned int *)0x4002c004)
+#define PCLKSEL0 (*(volatile unsigned int *)0x400FC1A8)
+#define I2C0SCLH (*(volatile unsigned int *)0x4001C010)
+#define I2C0SCLL (*(volatile unsigned int *)0x4001C014)
+#define I2C0CONSET (*(volatile unsigned int *)0x4001C000)
+#define I2C0CONCLR (*(volatile unsigned int *)0x4001C018)
+#define I2C0DAT (*(volatile unsigned int *) 0x4001C008)
+#define I2C0STAT (*(volatile unsigned int *) 0x4001C004)
+#define FIO2DIR (*(volatile unsigned int *)0x2009c040)
+#define FIO2PIN (*(volatile unsigned int *)0x2009c054)
+#define MIN (*(volatile unsigned int *)0x40024024)
+#define SEC (*(volatile unsigned int *)0x40024020)
+#define CLKEN (*(volatile unsigned int *) 0x40024008)
+
+
+void wait_ticks(int ticks)
+{
+	volatile int count;
+	for (count=0; count<ticks; count++){
+		//do nothing
+	}
+}
+
+void start()
+
+{
+
+	//Set the SI bit in the i2c control register
+
+	I2C0CONSET = (1<<3);
+
+
+
+	//Set the STA bit in the i2c control register
+
+	I2C0CONSET = (1<<5);
+
+
+
+	//Clear the SI bit
+
+	I2C0CONCLR = (1<<3);
+
+
+
+	//Wait for the SI bit to return to 1
+
+	while(((I2C0CONSET >> 3) & 1) == 0)
+
+	{
+
+
+
+	}
+
+	//Clear the STA bit
+
+	I2C0CONCLR = (1<<5);
+
+}
+
+
+
+int read(int a)
+
+{
+
+	int data;
+
+
+
+	if(a == 1)
+
+	{
+
+		//Clear the AA bit in the i2c control register
+
+		I2C0CONCLR = (1<<2);
+
+	}
+
+
+
+	else
+
+	{
+
+		//To read,set the AA bit in i2c control register
+
+		I2C0CONSET = (1<<2);
+
+	}
+
+
+
+
+
+	//Clear the SI bit in the i2c control register
+
+	I2C0CONCLR = (1<<3);
+
+
+
+	//Wait for the SI bit to return to 1
+
+	while(((I2C0CONSET >> 3) & 1) == 0)
+
+	{
+
+
+
+	}
+
+	//Assign the data from the I2CxDAT register
+
+	data = I2C0DAT;
+
+	return data;
+
+}
+
+
+
+void write(int data)
+
+{
+
+	//Assign the data to the I2CxDAT register
+
+	I2C0DAT = data;
+
+
+
+	//Clear the SI bit
+
+	I2C0CONCLR = (1<<3);
+
+
+
+	//Wait for the SI bit to return to 1
+
+	while(((I2C0CONSET >> 3) & 1) == 0)
+
+	{
+
+	}
+
+}
+
+
+
+void stop()
+
+{
+
+	//Set the STO bit in the I2C control register
+
+	I2C0CONSET = (1<<4);
+
+
+
+	//Clear the SI bit in the I2C control register
+
+	I2C0CONCLR = (1<<3);
+
+
+
+	//Wait for the STO bit to return to 0
+
+	while(((I2C0CONSET >> 4) & 1) == 1)
+
+	{
+
+	}
+
+}
+
+int main(void) {
+
+	I2C0STAT;
+	int data = 0;
+	int counter = 0;
+	int repeat = 0;
+	CLKEN = 1;
+	MIN = 0;
+	SEC = 0;
+
+    FIO2DIR |= (1<<1);   //RedLED at (P2.1) set to output
+
+
+  	PINSEL1 |= (1<<22);  // (P1.27) set to output
+  	PINSEL1 |= (1<<24);  // (P1.28) set to output
+
+
+
+  	//Set the high and low values equal to each other for 50% duty cycle
+  	I2C0SCLH = 5;
+  	I2C0SCLL = 5;
+
+
+
+  	//i2c interrupt clear bit is bit 3 of I2CCONCLR
+  	//I2EN (bit 6 of I2C0CONSET is cleared and then set to 1 to enable i2c function.
+  	I2C0CONCLR = (1<<6);
+  	I2C0CONSET = (1<<6);
+
+    while(1)
+	{
+		start();
+		//Access address for temperature sensor
+		write(0b10011110);
+		//Read from sensor
+		write(0b0000);
+		start();
+		//Access address for temperature sensor
+		write(0b10011111);
+		//Store the data in a variable
+		data = read(0);
+		stop();
+
+
+		if(SEC % 5 == 0  && repeat == 0)
+		{
+			  printf("Time: %d:%d", MIN, SEC);
+			  printf("\n");
+			  printf("Temperature: %d C", data);
+			  printf("\n");
+			  repeat = 1;
+		}
+		if(SEC % 5 == 1)
+		{
+			repeat = 0;
+		}
+
+		if(data > 26)
+		{
+			counter = 0;
+			while(counter < 10000)
+			{
+				FIO2PIN |= (1<<1);   //P2.1 set to high, turning on LED
+				wait_ticks(1);
+				FIO2PIN &= ~(1<<1); //P2.1 set to low, turning off LED
+				wait_ticks(1);
+				counter++;
+			}
+		}
+		else
+		{
+			FIO2PIN &= ~(1<<1); //P2.1 set to low, turning off LED
+		}
+	}
+
+    return 0;
+}
