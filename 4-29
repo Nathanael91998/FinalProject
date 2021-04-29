@@ -1,0 +1,375 @@
+#ifdef __USE_CMSIS
+
+#include "LPC17xx.h"
+
+#endif
+
+
+#include <cr_section_macros.h>
+
+#define PINSEL1 (*(volatile unsigned int *)0x4002c004)
+#define PCLKSEL0 (*(volatile unsigned int *)0x400FC1A8)
+#define I2C0SCLH (*(volatile unsigned int *)0x4001C010)
+#define I2C0SCLL (*(volatile unsigned int *)0x4001C014)
+#define I2C0CONSET (*(volatile unsigned int *)0x4001C000)
+#define I2C0CONCLR (*(volatile unsigned int *)0x4001C018)
+#define I2C0DAT (*(volatile unsigned int *) 0x4001C008)
+#define I2C0STAT (*(volatile unsigned int *) 0x4001C004)
+#define FIO2DIR (*(volatile unsigned int *)0x2009c040)
+#define FIO2PIN (*(volatile unsigned int *)0x2009c054)
+#define MIN (*(volatile unsigned int *)0x40024024)
+#define SEC (*(volatile unsigned int *)0x40024020)
+#define HOUR (*(volatile unsigned int *)0x40024028)
+#define CLKEN (*(volatile unsigned int *) 0x40024008)
+#define T0TCR (*(volatile unsigned int *) 0x40004004)
+#define T0TC (*(volatile unsigned int *) 0x40004008)
+
+void wait_ticks(int ticks)
+{
+	volatile int count;
+	for (count=0; count<ticks; count++){
+		//do nothing
+	}
+}
+
+void start()
+
+{
+	//Set the SI bit in the i2c control register
+	I2C0CONSET = (1<<3);
+
+	//Set the STA bit in the i2c control register
+	I2C0CONSET = (1<<5);
+
+	//Clear the SI bit
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+
+	}
+
+	//Clear the STA bit
+	I2C0CONCLR = (1<<5);
+}
+
+
+
+int read(int a)
+
+{
+	int data;
+
+	if(a == 1)
+	{
+		//Clear the AA bit in the i2c control register
+		I2C0CONCLR = (1<<2);
+	}
+
+	else
+	{
+		//To read,set the AA bit in i2c control register
+		I2C0CONSET = (1<<2);
+	}
+
+	//Clear the SI bit in the i2c control register
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+
+	}
+
+	//Assign the data from the I2CxDAT register
+	data = I2C0DAT;
+
+	return data;
+}
+
+
+
+void write(int data)
+
+{
+	//Assign the data to the I2CxDAT register
+	I2C0DAT = data;
+
+	//Clear the SI bit
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the SI bit to return to 1
+	while(((I2C0CONSET >> 3) & 1) == 0)
+	{
+
+	}
+}
+
+
+
+void stop()
+
+{
+	//Set the STO bit in the I2C control register
+	I2C0CONSET = (1<<4);
+
+	//Clear the SI bit in the I2C control register
+	I2C0CONCLR = (1<<3);
+
+	//Wait for the STO bit to return to 0
+	while(((I2C0CONSET >> 4) & 1) == 1)
+	{
+
+	}
+}
+
+// Assumes T0 is running at default 1 MHz and MCR
+  	// does not clear TC on any match
+void wait_us(int us){
+	int start = T0TC;  // note starting time
+	T0TCR |= (1<<0);   // start timer
+	while ((T0TC-start)<us) {
+
+	} // wait for time to pass
+
+}
+void wait(float sec){
+	wait_us(sec*1000000); // convert seconds to microseconds
+}
+
+int distance(){
+	int highTime = 0;
+	wait_ticks(300000);
+	FIO2PIN |= (1<<1);
+	wait_us(10);
+	FIO2PIN &= ~(1<<1);
+	while(((FIO2PIN>>4) & 1) != 1)
+	{
+
+	}
+	highTime = T0TC;
+	while (((FIO2PIN>>4) & 1) == 1)
+	{
+
+	}
+	highTime = T0TC - highTime;
+	int dist = highTime / 148;
+	return dist;
+}
+
+int temperature(int s, int m, int h){
+	start();
+	//Access address for temperature sensor
+	write(0b10011110);
+	//Read from sensor
+	write(0b0000);
+	start();
+	//Access address for temperature sensor
+	write(0b10011111);
+	//Store the data in a variable
+	int data = read(0);
+	stop();
+	printf("\n");
+	printf("Time: %02d:%02d:%02d", h, m, s);
+	printf("\n");
+	printf("Temperature: %dC", data);
+	printf("\n");
+	printf("\n");
+}
+
+int readGreen(){
+	int pCount = 0;
+	int numOfReadings = 0;
+	int totalValue = 0;
+	FIO2PIN |= (1<<5);   //Set to high for green
+	FIO2PIN |= (1<<6);   //Set to high for green
+	wait_ticks(100000);
+	while(numOfReadings < 10)
+	{
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) != 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+			pCount++;
+		}
+		totalValue = totalValue + pCount;
+		numOfReadings++;
+	}
+	totalValue = totalValue / numOfReadings;
+	return totalValue;
+}
+
+int readRed(){
+	int pCount = 0;
+	int numOfReadings = 0;
+	int totalValue = 0;
+	FIO2PIN &= ~(1<<5);   //Set to low for red
+	FIO2PIN &= ~(1<<6);   //Set to low for red
+	wait_ticks(100000);
+	while(numOfReadings < 10)
+	{
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) != 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+			pCount++;
+		}
+		totalValue = totalValue + pCount;
+		numOfReadings++;
+	}
+	totalValue = totalValue / numOfReadings;
+	return totalValue;
+}
+
+int readBlue(){
+	int pCount = 0;
+	int numOfReadings = 0;
+	int totalValue = 0;
+	FIO2PIN |= (1<<5);   //Set to low for Blue
+	FIO2PIN &= ~(1<<6);   //Set to high for Blue
+	wait_ticks(100000);
+	while(numOfReadings < 10)
+	{
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) != 1)
+		{
+
+		}
+		while(((FIO2PIN>>7) & 1) == 1)
+		{
+			pCount++;
+		}
+		totalValue = totalValue + pCount;
+		numOfReadings++;
+	}
+	totalValue = totalValue / numOfReadings;
+	return totalValue;
+}
+
+int main(void) {
+
+	I2C0STAT;
+	int repeatTemp = 0;
+	int secForTemp = 7;
+	int minForTemp = 0;
+	int hourForTemp = 0;
+	int repeatDist = 0;
+	int secForDist = 59;
+	int minForDist = 0;
+	int hourForDist = 0;
+	int secForColor = 30;
+	int minForColor = 0;
+	int hourForColor = 0;
+	int repeatColor = 0;
+	int highTime = 0;
+
+	CLKEN = 1;
+	HOUR = 0;
+	MIN = 0;
+	SEC = 0;
+
+    FIO2DIR |= (1<<1);   //Ultrasonic sensor at (P2.1) set to output
+    FIO2DIR &= ~(1<<4);  //Echo response at (P2.4) set to input
+    FIO2DIR |= (1<<5);   //Pin 8 at (P2.5) set to output
+	FIO2DIR |= (1<<6);   //Pin 7 at (P2.6) set to output
+	FIO2DIR &= ~(1<<7);  //Pin 6 at (P2.7) set to input
+
+	FIO2PIN |= (1<<5);   //Set to high for green
+	FIO2PIN |= (1<<6);   //Set to high for green
+
+	FIO2PIN &= ~(1<<1); //P2.1 set to low
+
+
+  	PINSEL1 |= (1<<22);  // (P1.27) set to output
+  	PINSEL1 |= (1<<24);  // (P1.28) set to output
+
+
+  	//Set the high and low values equal to each other for 50% duty cycle
+  	I2C0SCLH = 5;
+  	I2C0SCLL = 5;
+
+
+
+  	//i2c interrupt clear bit is bit 3 of I2CCONCLR
+  	//I2EN (bit 6 of I2C0CONSET is cleared and then set to 1 to enable i2c function.
+  	I2C0CONCLR = (1<<6);
+  	I2C0CONSET = (1<<6);
+
+    while(1)
+	{
+		if((SEC == secForTemp) && (MIN == minForTemp) && (HOUR == hourForTemp) && (repeatTemp == 0))
+		{
+			temperature(secForTemp, minForTemp, hourForTemp);
+			repeatTemp = 1;
+		}
+
+		if((SEC == secForDist) && (MIN == minForDist) && (HOUR == hourForDist) && (repeatDist == 0))
+		{
+			highTime = distance();
+			printf("Distance: %d", highTime);
+			printf(" inches");
+			printf("\n");
+			printf("\n");
+			repeatDist = 1;
+		}
+
+		//if((SEC == secForColor) && (MIN == minForColor) && (HOUR == hourForColor) && (repeatColor == 0))
+		//{
+			int blueValue = readBlue();
+			int greenValue = readGreen();
+			int redValue = readRed();
+
+/*
+			printf("Red: %d", redValue);
+			printf("\n");
+			printf("Green: %d", greenValue);
+			printf("\n");
+			printf("Blue: %d", blueValue);
+			printf("\n");
+*/
+			double redAdjusted = (1. / (redValue )) * 100000; //2.5
+			double blueAdjusted = (1. / blueValue ) * 100000;
+			double greenAdjusted = (1. / (greenValue)) * 100000; //1.4
+
+			printf("Red: %f", redAdjusted);
+			printf("\n");
+			printf("Green: %f", greenAdjusted);
+			printf("\n");
+			printf("Blue: %f", blueAdjusted);
+			printf("\n");
+
+			double totalValue = redAdjusted + greenAdjusted + blueAdjusted;
+			double percentRed = redAdjusted / totalValue * 100;
+			double percentBlue = blueAdjusted / totalValue * 100;
+			double percentGreen = greenAdjusted / totalValue * 100;
+
+			int pR = (int)percentRed;
+			int pB = (int)percentBlue;
+			int pG = (int)percentGreen;
+
+			printf("Percent red: %d, Percent green: %d, Percent blue: %d", pR, pG, pB);
+			printf("\n");
+			wait_ticks(300000);
+			repeatColor = 1;
+		//}
+
+	}
+
+    return 0;
+}
